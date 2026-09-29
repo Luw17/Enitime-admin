@@ -78,6 +78,7 @@ export default function TelegramCadastroPage() {
     setMessage(null)
 
     const fd = new FormData(e.currentTarget as HTMLFormElement)
+    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined
     const payload = {
       storeName: fd.get('storeName'),
       type: fd.get('type'),
@@ -86,8 +87,13 @@ export default function TelegramCadastroPage() {
       email: fd.get('email'),
       password: fd.get('password'),
       phone: fd.get('phone'),
-      initData: typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe ?? null : null,
+      // include both the secure initData string and the unsafe parsed object
+      initData: tg?.initData ?? null,
+      initDataUnsafe: tg?.initDataUnsafe ?? null,
     }
+
+    // helpful debug info in browser console when testing
+    try { console.debug('telegram initData', payload.initData, 'initDataUnsafe', payload.initDataUnsafe) } catch (e) {}
 
     try {
       const res = await fetch('/api/telegram-register', {
