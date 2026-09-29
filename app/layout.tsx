@@ -39,8 +39,24 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className="antialiased">
+    <html lang="pt-BR" className="light">
+      <body className="antialiased light">
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            document.body.classList.remove('dark');
+            document.body.classList.add('light');
+            // enforce core CSS variables in case of higher-specificity rules
+            const root = document.documentElement;
+            root.style.setProperty('--background', '#FFFFFF');
+            root.style.setProperty('--foreground', '#0C1618');
+            root.style.setProperty('--card', '#FFFFFF');
+            root.style.setProperty('--accent', '#A5CAFF');
+            root.style.setProperty('--border', 'rgba(12,22,24,0.08)');
+            root.style.setProperty('--input', '#FFFFFF');
+          } catch(e){}
+        ` }} />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
