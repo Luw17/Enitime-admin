@@ -17,6 +17,24 @@ export default function TelegramCadastroPage() {
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.Telegram && window.Telegram.WebApp) return
+
+    const s = document.createElement('script')
+    s.src = 'https://telegram.org/js/telegram-web-app.js'
+    s.async = true
+    s.onload = () => {
+      try {
+        const tg = window.Telegram?.WebApp
+        if (tg && typeof tg.ready === 'function') tg.ready()
+        if (tg && typeof tg.expand === 'function') tg.expand()
+      } catch (e) {}
+    }
+    document.head.appendChild(s)
+    return () => { s.remove() }
+  }, [])
+
+  useEffect(() => {
     const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined
     if (!tg) return
 
