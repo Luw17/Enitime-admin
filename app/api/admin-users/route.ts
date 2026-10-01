@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { getSession, TOKEN_COOKIE } from '@/lib/session'
 
 export async function GET() {
   const webhookBaseUrl = process.env.N8N_WEBHOOK_BASE_URL?.replace(/\/+$/, '')
   const webhookUrl = webhookBaseUrl ? `${webhookBaseUrl}/users` : undefined
-  const token = (await cookies()).get('n8n_admin_token')?.value
+  const session = await getSession()
+  const token = (await cookies()).get(TOKEN_COOKIE)?.value
 
   if (!webhookUrl) return NextResponse.json({ message: 'O endpoint de usuários não está configurado.' }, { status: 500 })
-  if (!token) return NextResponse.json({ message: 'Sessão expirada. Faça login novamente.' }, { status: 401 })
+  if (!session) return NextResponse.json({ message: 'Sessão expirada. Faça login novamente.' }, { status: 401 })
+  if (!session.user.is_admin) return NextResponse.json({ message: 'Acesso permitido somente para administradores.' }, { status: 403 })
 
   try {
     const response = await fetch(webhookUrl, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), Accept: 'application/json' },
       cache: 'no-store',
     })
     const contentType = response.headers.get('content-type') ?? ''
@@ -25,10 +28,12 @@ export async function GET() {
 export async function POST(request: Request) {
   const webhookBaseUrl = process.env.N8N_WEBHOOK_BASE_URL?.replace(/\/+$/, '')
   const webhookUrl = webhookBaseUrl ? `${webhookBaseUrl}/users` : undefined
-  const token = (await cookies()).get('n8n_admin_token')?.value
+  const session = await getSession()
+  const token = (await cookies()).get(TOKEN_COOKIE)?.value
 
   if (!webhookUrl) return NextResponse.json({ message: 'O endpoint de usuários não está configurado.' }, { status: 500 })
-  if (!token) return NextResponse.json({ message: 'Sessão expirada. Faça login novamente.' }, { status: 401 })
+  if (!session) return NextResponse.json({ message: 'Sessão expirada. Faça login novamente.' }, { status: 401 })
+  if (!session.user.is_admin) return NextResponse.json({ message: 'Acesso permitido somente para administradores.' }, { status: 403 })
 
   let body: Record<string, unknown>
   try {
@@ -63,7 +68,7 @@ export async function POST(request: Request) {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },

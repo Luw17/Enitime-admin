@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ChevronDown, Plus, X } from 'lucide-react'
+import { LogoutButton } from '@/components/logout-button'
 
 type UserRecord = Record<string, unknown>
 
@@ -14,8 +15,26 @@ async function requestUsers(): Promise<UserRecord[]> {
   return records.filter((item): item is UserRecord => item !== null && typeof item === 'object')
 }
 
-function formatValue(value: unknown) {
+const columnLabels: Record<string, string> = {
+  id: 'ID',
+  nome: 'Nome',
+  nome_loja: 'Nome da loja',
+  telegram_chat_id: 'Telegram Chat ID',
+  whatsapp_id: 'WhatsApp ID',
+  criado_em: 'Criado em',
+  pode_comprar: 'Pode comprar',
+  pode_vender: 'Pode vender',
+  status: 'Status',
+  is_admin: 'Administrador',
+}
+
+function formatValue(value: unknown, key: string) {
   if (value === null || value === undefined) return '—'
+  if (typeof value === 'boolean') return value ? 'Sim' : 'Não'
+  if (key === 'criado_em' && typeof value === 'string') {
+    const date = new Date(value)
+    if (!Number.isNaN(date.getTime())) return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date)
+  }
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
@@ -96,13 +115,13 @@ export default function AdminPage() {
       </aside>
 
       <section className="admin-content" id="usuarios">
-        <header className="admin-header"><div><p className="eyebrow">Gerenciamento</p><h1>Usuários</h1><p>Visualize os usuários cadastrados na sua aplicação n8n.</p></div><div className="admin-avatar" aria-label="Administrador">A</div></header>
+        <header className="admin-header"><div><p className="eyebrow">Gerenciamento</p><h1>Usuários</h1><p>Visualize os usuários cadastrados na sua aplicação n8n.</p></div><div className="admin-header-actions"><div className="admin-avatar" aria-label="Administrador">A</div><LogoutButton /></div></header>
         <div className="users-card">
           <div className="users-card__header"><div><h2>Todos os usuários</h2><p>{isLoading ? 'Carregando registros...' : `${users.length} registro${users.length === 1 ? '' : 's'} encontrado${users.length === 1 ? '' : 's'}`}</p></div><div className="users-card__actions"><button className="refresh-button" type="button" onClick={() => { setIsLoading(true); requestUsers().then((records) => { setUsers(records); setError('') }).catch((reason) => setError(reason instanceof Error ? reason.message : 'Erro ao carregar usuários.')).finally(() => setIsLoading(false)) }}>Atualizar</button><button className="create-user-button" type="button" onClick={() => { setSaveError(''); setIsCreateModalOpen(true) }}><Plus aria-hidden="true" size={15} /> Cadastrar usuário</button></div></div>
           {isLoading && <div className="table-state">Carregando usuários...</div>}
           {error && <div className="table-state table-state--error" role="alert">{error}</div>}
           {!isLoading && !error && users.length === 0 && <div className="table-state">Nenhum usuário encontrado.</div>}
-          {!isLoading && !error && users.length > 0 && <div className="table-scroll"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{users.map((user, index) => <tr key={index}>{columns.map((column) => <td key={column}>{formatValue(user[column])}</td>)}</tr>)}</tbody></table></div>}
+          {!isLoading && !error && users.length > 0 && <div className="user-record-list">{users.map((user, index) => <article className="user-record" key={String(user.id ?? index)}><h3>{formatValue(user.nome ?? `Registro ${index + 1}`, 'nome')}</h3><dl className="user-record-grid">{columns.map((column) => <div className="user-record-field" key={column}><dt>{columnLabels[column] ?? column.replaceAll('_', ' ')}</dt><dd>{formatValue(user[column], column)}</dd></div>)}</dl></article>)}</div>}
         </div>
       </section>
       {isCreateModalOpen && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !isSaving) setIsCreateModalOpen(false) }}>

@@ -37,12 +37,12 @@ export function AdminLogin() {
         }),
       })
 
+      const result = await response.json().catch(() => null)
       if (response.ok) {
-        router.push('/admin')
+        router.push(result?.user?.is_admin === true ? '/admin' : '/painel')
         return
       }
 
-      const result = await response.json().catch(() => null)
       setErrorMessage(result?.message ?? 'Usuário ou senha inválidos.')
     } catch {
       setErrorMessage('Não foi possível conectar ao servidor de autenticação.')
@@ -59,13 +59,13 @@ export function AdminLogin() {
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-brand">
           <BrandMark />
-          <span>n8n <strong>Admin</strong></span>
+          <span>n8n <strong>Console</strong></span>
         </div>
 
         <div className="login-heading">
           <p className="eyebrow">Área restrita</p>
           <h1 id="login-title">Bem-vindo de volta</h1>
-          <p>Entre com suas credenciais para acessar o painel administrativo.</p>
+          <p>Entre com suas credenciais para abrir seu painel.</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -95,7 +95,7 @@ export function AdminLogin() {
 
         <div className="security-note">
           <span aria-hidden="true" className="security-icon">✓</span>
-          <span>Conexão protegida e acesso exclusivo para administradores.</span>
+          <span>Conexão protegida para sua conta.</span>
         </div>
       </section>
 
