@@ -152,8 +152,8 @@ export default function TelegramCadastroPage() {
           </label>
 
           <label htmlFor="numero">
-            Número
-            <input id="numero" name="numero" type="text" placeholder="Número" />
+            Número do imóvel (casa/prédio)
+            <input id="numero" inputMode="numeric" min="0" name="numero" placeholder="Ex.: 123" step="1" type="number" />
           </label>
 
           <label htmlFor="email">

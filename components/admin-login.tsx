@@ -2,18 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
-
-function BrandMark() {
-  return (
-    <div aria-hidden="true" className="brand-mark">
-      <span className="brand-mark__node brand-mark__node--top" />
-      <span className="brand-mark__node brand-mark__node--left" />
-      <span className="brand-mark__node brand-mark__node--right" />
-      <span className="brand-mark__line brand-mark__line--left" />
-      <span className="brand-mark__line brand-mark__line--right" />
-    </div>
-  )
-}
+import Image from 'next/image'
 
 export function AdminLogin() {
   const router = useRouter()
@@ -58,8 +47,8 @@ export function AdminLogin() {
 
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-brand">
-          <BrandMark />
-          <span>n8n <strong>Console</strong></span>
+          <Image alt="Enitime" className="panel-brand-logo panel-brand-logo--login" height={42} src="/LogoEnitime.png" width={42} />
+          <span>Enitime <strong>Panel</strong></span>
         </div>
 
         <div className="login-heading">
@@ -100,7 +89,7 @@ export function AdminLogin() {
       </section>
 
       <footer className="login-footer">
-        <span>n8n Admin Console</span>
+        <span>Enitime Panel</span>
         <span className="footer-dot" aria-hidden="true" />
         <span>v1.0.0</span>
       </footer>

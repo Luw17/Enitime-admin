@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ChevronDown, Plus, X } from 'lucide-react'
+import Image from 'next/image'
 import { LogoutButton } from '@/components/logout-button'
 
 type UserRecord = Record<string, unknown>
@@ -106,7 +107,7 @@ export default function AdminPage() {
   return (
     <main className="admin-layout">
       <aside className="admin-sidebar">
-        <div className="admin-sidebar-brand"><span className="sidebar-brand-mark">n8</span><span>Admin <strong>Console</strong></span></div>
+        <div className="admin-sidebar-brand"><Image alt="Enitime" className="panel-brand-logo" height={34} src="/LogoEnitime.png" width={34} /><span>Enitime <strong>Panel</strong></span></div>
         <nav aria-label="Menu principal" className="admin-nav">
           <a className="admin-nav__item admin-nav__item--active" href="#usuarios"><span aria-hidden="true">◈</span> Usuários</a>
           <a className="admin-nav__item" href="#configuracoes"><span aria-hidden="true">⚙</span> Configurações</a>

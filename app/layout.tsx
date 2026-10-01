@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'n8n Admin — Acesso restrito',
-  description: 'Painel administrativo seguro para sua aplicação n8n.',
+  title: 'Enitime Panel — Acesso restrito',
+  description: 'Painel de gestão da Enitime.',
   generator: 'v0.app',
   icons: {
     icon: [

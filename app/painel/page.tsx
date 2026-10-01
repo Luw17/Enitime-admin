@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { LogoutButton } from '@/components/logout-button'
+import { PainelSidebar } from '@/components/painel-sidebar'
+import { canUserSell } from '@/lib/products'
 import { getSession } from '@/lib/session'
 
 const profileFields: Record<string, string> = {
@@ -26,16 +28,11 @@ export default async function UserDashboardPage() {
   if (session.user.is_admin) redirect('/admin')
 
   const visibleFields = Object.entries(session.user).filter(([key]) => key !== 'is_admin')
+  const canSell = canUserSell(session.user)
 
   return (
     <main className="admin-layout">
-      <aside className="admin-sidebar">
-        <div className="admin-sidebar-brand"><span className="sidebar-brand-mark">n8</span><span>n8n <strong>Painel</strong></span></div>
-        <nav aria-label="Menu principal" className="admin-nav">
-          <a className="admin-nav__item admin-nav__item--active" href="#visao-geral"><span aria-hidden="true">◈</span> Visão geral</a>
-        </nav>
-        <div className="admin-sidebar-footer"><span className="status-dot" /> Sessão ativa</div>
-      </aside>
+      <PainelSidebar active="overview" showProducts={canSell} />
 
       <section className="admin-content" id="visao-geral">
         <header className="admin-header">
