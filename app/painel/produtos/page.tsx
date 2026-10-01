@@ -38,6 +38,7 @@ export default async function ProductsPage() {
     ? await fetchSellerProducts(userId, token)
     : { products: [], error: 'Não foi possível identificar o ID da sua conta.' }
   const productKeys = Array.from(new Set(result.products.flatMap((product) => Object.keys(product))))
+    .filter((key) => !['id', 'fornecedorid'].includes(key.toLowerCase().replace(/[\s_-]/g, '')))
 
   return (
     <main className="admin-layout">

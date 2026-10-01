@@ -166,6 +166,8 @@ export function BulkProductEditor() {
     return errors
   })
   const canSave = rows.length > 0 && rowErrors.length === 0 && !isSaving
+  const mainColumns = columns.filter(({ key }) => ['sku', 'preco', 'quantidade'].includes(key))
+  const optionalColumns = columns.filter(({ key }) => !['sku', 'preco', 'quantidade'].includes(key))
 
   function updateRow(rowId: number, field: ProductField, value: string) {
     setRows((current) => current.map((row) => row.rowId === rowId ? { ...row, [field]: value } : row))
@@ -257,6 +259,15 @@ export function BulkProductEditor() {
     }
   }
 
+  function renderField(row: ProductRow, index: number, { key, label, required }: typeof columns[number]) {
+    const error = errorFor(row, key)
+    return <label className="spreadsheet-field" key={key}>
+      <span>{label}{required && <b aria-label="obrigatório">*</b>}</span>
+      <input aria-invalid={Boolean(error)} aria-label={`${label}, linha ${index + 1}`} className={error ? 'spreadsheet-cell spreadsheet-cell--invalid' : 'spreadsheet-cell'} inputMode={key === 'preco' || key === 'quantidade' ? 'decimal' : undefined} onChange={(event) => updateRow(row.rowId, key, event.target.value)} placeholder={key === 'preco' ? '0,00' : ''} title={error || label} value={row[key]} />
+      {error && <small>{error}</small>}
+    </label>
+  }
+
   return (
     <>
       <section aria-label="Ações de estoque" className="bulk-toolbar">
@@ -274,19 +285,11 @@ export function BulkProductEditor() {
       {csvError && <p className="bulk-error" role="alert">{csvError}</p>}
 
       <section aria-label="Planilha de produtos" className="spreadsheet-section">
-        <div className="spreadsheet-wrap">
-          <table className="spreadsheet-table">
-            <thead><tr><th aria-label="Número da linha" className="spreadsheet-row-number">#</th>{columns.map(({ key, label, required }) => <th key={key}>{label}{required && <span aria-label="obrigatório"> *</span>}</th>)}<th aria-label="Ações" /></tr></thead>
-            <tbody>{rows.map((row, index) => <tr key={row.rowId}>
-              <td className="spreadsheet-row-number">{index + 1}</td>
-              {columns.map(({ key, label }) => {
-                const error = errorFor(row, key)
-                return <td key={key}><input aria-invalid={Boolean(error)} aria-label={`${label}, linha ${index + 1}`} className={error ? 'spreadsheet-cell spreadsheet-cell--invalid' : 'spreadsheet-cell'} inputMode={key === 'preco' || key === 'quantidade' ? 'decimal' : undefined} onChange={(event) => updateRow(row.rowId, key, event.target.value)} placeholder={key === 'preco' ? '0,00' : ''} title={error || label} value={row[key]} /></td>
-              })}
-              <td><button aria-label={`Excluir linha ${index + 1}`} className="spreadsheet-delete" onClick={() => setRows((current) => current.filter((item) => item.rowId !== row.rowId))} title="Excluir linha" type="button"><Trash2 aria-hidden="true" size={16} /></button></td>
-            </tr>)}</tbody>
-          </table>
-        </div>
+        <div className="spreadsheet-cards">{rows.map((row, index) => <article aria-label={`Produto ${index + 1}`} className="spreadsheet-row-card" key={row.rowId}>
+          <header className="spreadsheet-row-card__header"><span>Produto {index + 1}</span><button aria-label={`Excluir linha ${index + 1}`} className="spreadsheet-delete" onClick={() => setRows((current) => current.filter((item) => item.rowId !== row.rowId))} title="Excluir linha" type="button"><Trash2 aria-hidden="true" size={16} /></button></header>
+          <div className="spreadsheet-required-fields">{mainColumns.map((column) => renderField(row, index, column))}</div>
+          <div className="spreadsheet-optional-fields">{optionalColumns.map((column) => renderField(row, index, column))}</div>
+        </article>)}</div>
         <footer className="spreadsheet-footer"><span>{rows.length} linha{rows.length === 1 ? '' : 's'}</span><span>{rowErrors.length ? `${rowErrors.length} inconsistência${rowErrors.length === 1 ? '' : 's'}` : 'Dados válidos'}</span></footer>
       </section>
 
