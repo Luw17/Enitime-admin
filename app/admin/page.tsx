@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { ChevronDown, Plus, X } from 'lucide-react'
+import { ChevronDown, Pencil, Plus, X } from 'lucide-react'
 import Image from 'next/image'
 import { LogoutButton } from '@/components/logout-button'
 
@@ -40,6 +40,10 @@ function formatValue(value: unknown, key: string) {
   return String(value)
 }
 
+function isEnabled(value: unknown) {
+  return value === true || (typeof value === 'string' && value.trim().replace(/^=/, '').toLowerCase() === 'true')
+}
+
 export default function AdminPage() {
   const [users, setUsers] = useState<UserRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -47,6 +51,9 @@ export default function AdminPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [updateError, setUpdateError] = useState('')
 
   useEffect(() => {
     requestUsers()
@@ -63,6 +70,15 @@ export default function AdminPage() {
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [isCreateModalOpen, isSaving])
+
+  useEffect(() => {
+    if (!editingUser) return
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !isUpdating) setEditingUser(null)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [editingUser, isUpdating])
 
   async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -102,6 +118,39 @@ export default function AdminPage() {
     }
   }
 
+  async function handleUpdateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!editingUser || (typeof editingUser.id !== 'string' && typeof editingUser.id !== 'number')) return
+
+    const formData = new FormData(event.currentTarget)
+    const updates = {
+      nome: String(formData.get('nome') ?? ''),
+      telegram_chat_id: String(formData.get('telegram_chat_id') ?? ''),
+      whatsapp_id: String(formData.get('whatsapp_id') ?? ''),
+      pode_comprar: formData.get('pode_comprar') === 'true',
+      pode_vender: formData.get('pode_vender') === 'true',
+    }
+    setIsUpdating(true)
+    setUpdateError('')
+
+    try {
+      const response = await fetch('/api/admin-users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingUser.id, ...updates }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(result?.message ?? 'Não foi possível atualizar o usuário.')
+
+      setUsers((current) => current.map((user) => String(user.id) === String(editingUser.id) ? { ...user, ...updates } : user))
+      setEditingUser(null)
+    } catch (reason) {
+      setUpdateError(reason instanceof Error ? reason.message : 'Não foi possível atualizar o usuário.')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   const columns = users.length ? Object.keys(users[0]) : []
 
   return (
@@ -122,7 +171,7 @@ export default function AdminPage() {
           {isLoading && <div className="table-state">Carregando usuários...</div>}
           {error && <div className="table-state table-state--error" role="alert">{error}</div>}
           {!isLoading && !error && users.length === 0 && <div className="table-state">Nenhum usuário encontrado.</div>}
-          {!isLoading && !error && users.length > 0 && <div className="user-record-list">{users.map((user, index) => <article className="user-record" key={String(user.id ?? index)}><h3>{formatValue(user.nome ?? `Registro ${index + 1}`, 'nome')}</h3><dl className="user-record-grid">{columns.map((column) => <div className="user-record-field" key={column}><dt>{columnLabels[column] ?? column.replaceAll('_', ' ')}</dt><dd>{formatValue(user[column], column)}</dd></div>)}</dl></article>)}</div>}
+          {!isLoading && !error && users.length > 0 && <div className="user-record-list">{users.map((user, index) => <article className="user-record" key={String(user.id ?? index)}><header className="user-record__header"><h3>{formatValue(user.nome ?? `Registro ${index + 1}`, 'nome')}</h3><button aria-label={`Editar ${formatValue(user.nome, 'nome')}`} className="icon-action-button" disabled={typeof user.id !== 'string' && typeof user.id !== 'number'} onClick={() => { setUpdateError(''); setEditingUser(user) }} title="Editar usuário" type="button"><Pencil aria-hidden="true" size={15} /></button></header><dl className="user-record-grid">{columns.map((column) => <div className="user-record-field" key={column}><dt>{columnLabels[column] ?? column.replaceAll('_', ' ')}</dt><dd>{formatValue(user[column], column)}</dd></div>)}</dl></article>)}</div>}
         </div>
       </section>
       {isCreateModalOpen && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !isSaving) setIsCreateModalOpen(false) }}>
@@ -136,6 +185,20 @@ export default function AdminPage() {
             <label className="create-user-field"><span>WhatsApp ID</span><input autoComplete="off" name="whatsapp_id" placeholder="Opcional" /></label>
             {saveError && <p className="create-user-error" role="alert">{saveError}</p>}
             <footer className="create-user-modal__footer"><span className="required-note">* Obrigatório</span><div><button className="refresh-button" disabled={isSaving} onClick={() => setIsCreateModalOpen(false)} type="button">Cancelar</button><button className="create-user-button" disabled={isSaving} type="submit">{isSaving ? 'Cadastrando...' : 'Cadastrar'}</button></div></footer>
+          </form>
+        </section>
+      </div>}
+      {editingUser && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !isUpdating) setEditingUser(null) }}>
+        <section aria-labelledby="edit-user-title" aria-modal="true" className="create-user-modal" role="dialog">
+          <header className="create-user-modal__header"><div><p className="eyebrow">Usuário</p><h2 id="edit-user-title">Editar usuário</h2></div><button aria-label="Fechar" className="modal-close-button" disabled={isUpdating} onClick={() => setEditingUser(null)} type="button"><X aria-hidden="true" size={18} /></button></header>
+          <form className="create-user-form" onSubmit={handleUpdateUser}>
+            <label className="create-user-field"><span>Nome <b>*</b></span><input autoFocus autoComplete="organization" defaultValue={String(editingUser.nome ?? '')} name="nome" required /></label>
+            <label className="create-user-field"><span>Telegram Chat ID</span><input autoComplete="off" defaultValue={String(editingUser.telegram_chat_id ?? '')} name="telegram_chat_id" /></label>
+            <label className="create-user-field"><span>WhatsApp ID</span><input autoComplete="off" defaultValue={String(editingUser.whatsapp_id ?? '')} name="whatsapp_id" /></label>
+            <label className="create-user-field"><span>Pode comprar</span><span className="create-user-select"><select defaultValue={isEnabled(editingUser.pode_comprar) ? 'true' : 'false'} name="pode_comprar"><option value="true">Sim</option><option value="false">Não</option></select><ChevronDown aria-hidden="true" className="create-user-select__icon" size={16} /></span></label>
+            <label className="create-user-field"><span>Pode vender</span><span className="create-user-select"><select defaultValue={isEnabled(editingUser.pode_vender) ? 'true' : 'false'} name="pode_vender"><option value="true">Sim</option><option value="false">Não</option></select><ChevronDown aria-hidden="true" className="create-user-select__icon" size={16} /></span></label>
+            {updateError && <p className="create-user-error" role="alert">{updateError}</p>}
+            <footer className="create-user-modal__footer"><span className="required-note">ID e privilégios administrativos não são editáveis</span><div><button className="refresh-button" disabled={isUpdating} onClick={() => setEditingUser(null)} type="button">Cancelar</button><button className="create-user-button" disabled={isUpdating} type="submit">{isUpdating ? 'Salvando...' : 'Salvar alterações'}</button></div></footer>
           </form>
         </section>
       </div>}

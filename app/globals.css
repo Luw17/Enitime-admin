@@ -314,6 +314,8 @@ tr:last-child td { border-bottom: 0; }
 .table-state--error { color: #ff9a80; }
 .user-record + .user-record { border-top: 1px solid var(--border); }
 .user-record { padding: 22px 24px; }
+.user-record__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.user-record__header h3 { margin: 0; }
 .user-record h3 { margin: 0 0 18px; color: var(--foreground); font-size: 14px; font-weight: 600; }
 .user-record-grid, .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 18px 24px; margin: 0; }
 .user-record-field, .profile-field { min-width: 0; }
@@ -344,6 +346,7 @@ tr:last-child td { border-bottom: 0; }
 .products-table td { max-width: 320px; overflow-wrap: anywhere; white-space: normal; }
 .icon-action-button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 6px; color: var(--foreground); text-decoration: none; }
 .icon-action-button:hover { border-color: var(--accent); background: var(--muted); }
+.icon-action-button:disabled { cursor: not-allowed; opacity: .45; }
 .bulk-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 28px; }
 .bulk-toolbar__actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .bulk-toolbar__actions .refresh-button, .bulk-toolbar__actions .create-user-button { display: inline-flex; align-items: center; gap: 7px; }
