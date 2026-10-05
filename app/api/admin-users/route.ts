@@ -50,21 +50,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Os dados do usuário são inválidos.' }, { status: 400 })
   }
 
-  const { nome, tipo, senha, telegram_chat_id, whatsapp_id } = body
-  if (
-    typeof nome !== 'string' || !nome.trim() ||
-    typeof tipo !== 'string' || !tipo.trim() ||
-    typeof senha !== 'string' || !senha
-  ) {
-    return NextResponse.json({ message: 'Nome, tipo e senha são obrigatórios.' }, { status: 400 })
+  const storeName = typeof body.storeName === 'string' ? body.storeName.trim() : typeof body.nome_loja === 'string' ? body.nome_loja.trim() : typeof body.nome === 'string' ? body.nome.trim() : ''
+  const type = typeof body.type === 'string' ? body.type.trim() : typeof body.tipo === 'string' ? body.tipo.trim() : ''
+  const password = typeof body.password === 'string' ? body.password : typeof body.senha === 'string' ? body.senha : ''
+  const email = typeof body.email === 'string' ? body.email.trim() : ''
+  const phone = typeof body.phone === 'string' ? body.phone.trim() : typeof body.whatsapp_id === 'string' ? body.whatsapp_id.trim() : ''
+  const cep = typeof body.cep === 'string' ? body.cep.trim() : ''
+  const numero = typeof body.numero === 'string' ? body.numero.trim() : ''
+  const telegramChatId = body.telegram_chat_id === null ? null : typeof body.telegram_chat_id === 'string' ? body.telegram_chat_id.trim() : null
+
+  if (!storeName || !type || !email || !password) {
+    return NextResponse.json({ message: 'Nome da loja, tipo, email e senha são obrigatórios.' }, { status: 400 })
   }
 
+  const normalizedType = type === 'fornecedor' || type === 'comprador' || type === 'ambos' ? type : 'ambos'
   const userPayload = {
-    nome: nome.trim(),
-    tipo: tipo.trim(),
-    senha,
-    telegram_chat_id: typeof telegram_chat_id === 'string' ? telegram_chat_id.trim() : '',
-    whatsapp_id: typeof whatsapp_id === 'string' ? whatsapp_id.trim() : '',
+    nome: storeName,
+    nome_loja: storeName,
+    storeName,
+    tipo: normalizedType,
+    type: normalizedType,
+    senha: password,
+    password,
+    email,
+    cep: cep || null,
+    numero: numero || null,
+    phone: phone || null,
+    whatsapp_id: phone || null,
+    telegram_chat_id: telegramChatId,
+    status: 'aprovado',
+    pode_comprar: normalizedType === 'comprador' || normalizedType === 'ambos',
+    pode_vender: normalizedType === 'fornecedor' || normalizedType === 'ambos',
     origem_cadastro: 'painel',
   }
 

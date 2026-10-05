@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import IMask from 'imask'
 import { ChevronDown, Pencil, Plus, X } from 'lucide-react'
 import Image from 'next/image'
 import { LogoutButton } from '@/components/logout-button'
@@ -64,6 +65,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isCreateModalOpen) return
+    const cepInput = document.querySelector('input[name="cep"]') as HTMLInputElement | null
+    const phoneInput = document.querySelector('input[name="phone"]') as HTMLInputElement | null
+
+    if (cepInput) IMask(cepInput, { mask: '00000-000' })
+    if (phoneInput) IMask(phoneInput, { mask: '(00) 00000-0000' })
+
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === 'Escape' && !isSaving) setIsCreateModalOpen(false)
     }
@@ -84,21 +91,41 @@ export default function AdminPage() {
     event.preventDefault()
     const form = event.currentTarget
     const formData = new FormData(form)
+    const storeName = String(formData.get('storeName') ?? '').trim()
+    const type = String(formData.get('type') ?? '').trim()
+    const cep = String(formData.get('cep') ?? '').trim()
+    const numero = String(formData.get('numero') ?? '').trim()
+    const email = String(formData.get('email') ?? '').trim()
+    const password = String(formData.get('password') ?? '')
+    const phone = String(formData.get('phone') ?? '').trim()
+
+    if (!storeName || !type || !email || !password) {
+      setSaveError('Nome da loja, tipo, email e senha são obrigatórios.')
+      return
+    }
+
     setIsSaving(true)
     setSaveError('')
 
     try {
+      const normalizedType = type === 'fornecedor' || type === 'comprador' || type === 'ambos' ? type : 'ambos'
+      const payload = {
+        storeName,
+        type: normalizedType,
+        cep: cep || null,
+        numero: numero || null,
+        email,
+        password,
+        phone: phone || null,
+        telegram_chat_id: null,
+        status: 'aprovado',
+        origem_cadastro: 'painel',
+      }
+
       const response = await fetch('/api/admin-users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: formData.get('nome'),
-          tipo: formData.get('tipo'),
-          senha: formData.get('senha'),
-          telegram_chat_id: formData.get('telegram_chat_id'),
-          whatsapp_id: formData.get('whatsapp_id'),
-          origem_cadastro: 'painel',
-        }),
+        body: JSON.stringify(payload),
       })
       const result = await response.json().catch(() => null)
       if (!response.ok) throw new Error(result?.message ?? 'Não foi possível cadastrar o usuário.')
@@ -178,11 +205,13 @@ export default function AdminPage() {
         <section aria-labelledby="create-user-title" aria-modal="true" className="create-user-modal" role="dialog">
           <header className="create-user-modal__header"><div><p className="eyebrow">Novo registro</p><h2 id="create-user-title">Cadastrar usuário</h2></div><button aria-label="Fechar" className="modal-close-button" disabled={isSaving} onClick={() => setIsCreateModalOpen(false)} type="button"><X aria-hidden="true" size={18} /></button></header>
           <form className="create-user-form" onSubmit={handleCreateUser}>
-            <label className="create-user-field"><span>Nome <b>*</b></span><input autoFocus autoComplete="organization" name="nome" placeholder="Ex.: Loja Exemplo" required /></label>
-            <label className="create-user-field"><span>Tipo <b>*</b></span><span className="create-user-select"><select defaultValue="loja" name="tipo" required><option value="loja">Loja</option><option value="admin">Admin</option><option value="comprador">Comprador</option></select><ChevronDown aria-hidden="true" className="create-user-select__icon" size={16} /></span></label>
-            <label className="create-user-field"><span>Senha <b>*</b></span><input autoComplete="new-password" name="senha" type="password" required /></label>
-            <label className="create-user-field"><span>Telegram Chat ID</span><input autoComplete="off" name="telegram_chat_id" placeholder="Opcional" /></label>
-            <label className="create-user-field"><span>WhatsApp ID</span><input autoComplete="off" name="whatsapp_id" placeholder="Opcional" /></label>
+            <label className="create-user-field create-user-field--full"><span>Nome da loja <b>*</b></span><input autoFocus autoComplete="organization" name="storeName" placeholder="Nome da loja" required /></label>
+            <label className="create-user-field"><span>Tipo <b>*</b></span><span className="create-user-select"><select defaultValue="ambos" name="type" required><option value="fornecedor">Fornecedor</option><option value="comprador">Comprador</option><option value="ambos">Ambos</option></select><ChevronDown aria-hidden="true" className="create-user-select__icon" size={16} /></span></label>
+            <label className="create-user-field"><span>CEP da loja</span><input autoComplete="off" inputMode="numeric" name="cep" placeholder="00000-000" /></label>
+            <label className="create-user-field"><span>Número do imóvel</span><input autoComplete="off" inputMode="numeric" min="0" name="numero" placeholder="Ex.: 123" step="1" type="number" /></label>
+            <label className="create-user-field create-user-field--full"><span>Email <b>*</b></span><input autoComplete="email" name="email" placeholder="contato@loja.com" required type="email" /></label>
+            <label className="create-user-field create-user-field--full"><span>Senha <b>*</b></span><input autoComplete="new-password" name="password" placeholder="Senha" required type="password" /></label>
+            <label className="create-user-field create-user-field--full"><span>Telefone de contato</span><input autoComplete="tel" name="phone" placeholder="(00) 00000-0000" type="tel" /></label>
             {saveError && <p className="create-user-error" role="alert">{saveError}</p>}
             <footer className="create-user-modal__footer"><span className="required-note">* Obrigatório</span><div><button className="refresh-button" disabled={isSaving} onClick={() => setIsCreateModalOpen(false)} type="button">Cancelar</button><button className="create-user-button" disabled={isSaving} type="submit">{isSaving ? 'Cadastrando...' : 'Cadastrar'}</button></div></footer>
           </form>
