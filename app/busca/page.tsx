@@ -1,7 +1,23 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+
+type SearchResult = {
+  produto_id?: string | number
+  sku?: string
+  part_number?: string
+  modelos_compativeis?: string
+  tipo_componente?: string
+  marca_qualidade?: string
+  preco?: string | number
+  quantidade_estoque?: number | string
+  nome_loja?: string
+  vendedor_nome?: string
+  distancia_km?: string | number
+  loja_telegram_chat_id?: string | number
+  loja_whatsapp_id?: string | number
+  loja_telefone?: string | number
+}
 
 declare global {
   interface Window {
@@ -9,11 +25,28 @@ declare global {
   }
 }
 
+function normalizeResults(payload: unknown): SearchResult[] {
+  if (Array.isArray(payload)) return payload.filter((item): item is SearchResult => item !== null && typeof item === 'object') as SearchResult[]
+
+  if (!payload || typeof payload !== 'object') return []
+
+  const record = payload as Record<string, unknown>
+  const list = Array.isArray(record.produtos)
+    ? record.produtos
+    : Array.isArray(record.products)
+      ? record.products
+      : Array.isArray(record.data)
+        ? record.data
+        : []
+
+  return list.filter((item): item is SearchResult => item !== null && typeof item === 'object') as SearchResult[]
+}
+
 export default function SearchPage() {
-  const router = useRouter()
   const formRef = useRef<HTMLFormElement | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [results, setResults] = useState<SearchResult[]>([])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -93,21 +126,13 @@ export default function SearchPage() {
       const result = await response.json().catch(() => null)
 
       if (response.ok) {
-        setMessage('Busca enviada com sucesso.')
-
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp?.sendData) {
-          try {
-            window.Telegram.WebApp.sendData(JSON.stringify({ type: 'search', payload }))
-          } catch {}
-          try {
-            window.Telegram.WebApp.close()
-          } catch {}
-        } else {
-          router.push('/')
-        }
+        const nextResults = normalizeResults(result)
+        setResults(nextResults)
+        setMessage(nextResults.length ? `Encontramos ${nextResults.length} peça${nextResults.length === 1 ? '' : 's'}.` : 'Nenhuma peça foi encontrada para esse filtro.')
         return
       }
 
+      setResults([])
       setMessage(result?.message ?? 'Falha ao enviar a busca.')
     } catch {
       setMessage('Erro de conexão ao enviar a busca.')
@@ -160,13 +185,41 @@ export default function SearchPage() {
         <section className="search-mobile-results" aria-live="polite">
           <div className="search-mobile-results__header">
             <h2>Peças encontradas</h2>
+            {results.length > 0 && <span>{results.length} item{results.length === 1 ? '' : 's'}</span>}
           </div>
 
-          <div className="search-mobile-empty-state">
-            <p>Os resultados aparecerão aqui após a busca.</p>
-          </div>
-
-          <div className="search-mobile-cards" />
+          {!results.length ? (
+            <div className="search-mobile-empty-state">
+              <p>Os resultados aparecerão aqui após a busca.</p>
+            </div>
+          ) : (
+            <div className="search-mobile-cards">
+              {results.map((item, index) => (
+                <article className="search-mobile-card" key={String(item.produto_id ?? item.sku ?? `${item.nome_loja ?? 'peca'}-${index}`)}>
+                  <div className="search-mobile-card__topline">
+                    <span className="search-mobile-card__tag">{item.tipo_componente || 'Peça'}</span>
+                    <span className="search-mobile-card__distance">{item.distancia_km ? `${item.distancia_km} km` : 'Próximo'}</span>
+                  </div>
+                  <h3>{item.part_number || item.sku || 'Peça sem código'}</h3>
+                  <p className="search-mobile-card__subline">{item.modelos_compativeis || item.nome_loja || 'Modelo não informado'}</p>
+                  <div className="search-mobile-card__meta">
+                    <div>
+                      <span className="search-mobile-card__label">Loja</span>
+                      <strong>{item.nome_loja || 'Loja'}</strong>
+                    </div>
+                    <div>
+                      <span className="search-mobile-card__label">Preço</span>
+                      <strong>{typeof item.preco === 'number' ? `R$ ${item.preco.toFixed(2).replace('.', ',')}` : item.preco ? `R$ ${String(item.preco).replace('.', ',')}` : 'Preço não informado'}</strong>
+                    </div>
+                  </div>
+                  <div className="search-mobile-card__footer">
+                    <span>{item.quantidade_estoque ?? 0} em estoque</span>
+                    <button type="button" className="search-mobile-card__button">Contato</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </section>
     </main>
