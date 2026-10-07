@@ -45,6 +45,12 @@ function isEnabled(value: unknown) {
   return value === true || (typeof value === 'string' && value.trim().replace(/^=/, '').toLowerCase() === 'true')
 }
 
+function getStoreName(user: UserRecord, fallbackIndex?: number) {
+  const rawValue = user.nome_loja ?? user.storeName ?? user.nome ?? (fallbackIndex !== undefined ? `Registro ${fallbackIndex + 1}` : 'Registro')
+  const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue
+  return value || (fallbackIndex !== undefined ? `Registro ${fallbackIndex + 1}` : 'Registro')
+}
+
 export default function AdminPage() {
   const [users, setUsers] = useState<UserRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -198,7 +204,7 @@ export default function AdminPage() {
           {isLoading && <div className="table-state">Carregando usuários...</div>}
           {error && <div className="table-state table-state--error" role="alert">{error}</div>}
           {!isLoading && !error && users.length === 0 && <div className="table-state">Nenhum usuário encontrado.</div>}
-          {!isLoading && !error && users.length > 0 && <div className="user-record-list">{users.map((user, index) => <article className="user-record" key={String(user.id ?? index)}><header className="user-record__header"><h3>{formatValue(user.nome ?? `Registro ${index + 1}`, 'nome')}</h3><button aria-label={`Editar ${formatValue(user.nome, 'nome')}`} className="icon-action-button" disabled={typeof user.id !== 'string' && typeof user.id !== 'number'} onClick={() => { setUpdateError(''); setEditingUser(user) }} title="Editar usuário" type="button"><Pencil aria-hidden="true" size={15} /></button></header><dl className="user-record-grid">{columns.map((column) => <div className="user-record-field" key={column}><dt>{columnLabels[column] ?? column.replaceAll('_', ' ')}</dt><dd>{formatValue(user[column], column)}</dd></div>)}</dl></article>)}</div>}
+          {!isLoading && !error && users.length > 0 && <div className="user-record-list">{users.map((user, index) => <article className="user-record" key={String(user.id ?? index)}><header className="user-record__header"><h3>{formatValue(getStoreName(user, index), 'nome_loja')}</h3><button aria-label={`Editar ${formatValue(getStoreName(user, index), 'nome_loja')}`} className="icon-action-button" disabled={typeof user.id !== 'string' && typeof user.id !== 'number'} onClick={() => { setUpdateError(''); setEditingUser(user) }} title="Editar usuário" type="button"><Pencil aria-hidden="true" size={15} /></button></header><dl className="user-record-grid">{columns.map((column) => <div className="user-record-field" key={column}><dt>{columnLabels[column] ?? column.replaceAll('_', ' ')}</dt><dd>{formatValue(user[column], column)}</dd></div>)}</dl></article>)}</div>}
         </div>
       </section>
       {isCreateModalOpen && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !isSaving) setIsCreateModalOpen(false) }}>
@@ -221,7 +227,7 @@ export default function AdminPage() {
         <section aria-labelledby="edit-user-title" aria-modal="true" className="create-user-modal" role="dialog">
           <header className="create-user-modal__header"><div><p className="eyebrow">Usuário</p><h2 id="edit-user-title">Editar usuário</h2></div><button aria-label="Fechar" className="modal-close-button" disabled={isUpdating} onClick={() => setEditingUser(null)} type="button"><X aria-hidden="true" size={18} /></button></header>
           <form className="create-user-form" onSubmit={handleUpdateUser}>
-            <label className="create-user-field"><span>Nome <b>*</b></span><input autoFocus autoComplete="organization" defaultValue={String(editingUser.nome ?? '')} name="nome" required /></label>
+            <label className="create-user-field"><span>Nome da loja <b>*</b></span><input autoFocus autoComplete="organization" defaultValue={String(editingUser.nome_loja ?? editingUser.storeName ?? editingUser.nome ?? '')} name="nome" required /></label>
             <label className="create-user-field"><span>Telegram Chat ID</span><input autoComplete="off" defaultValue={String(editingUser.telegram_chat_id ?? '')} name="telegram_chat_id" /></label>
             <label className="create-user-field"><span>WhatsApp ID</span><input autoComplete="off" defaultValue={String(editingUser.whatsapp_id ?? '')} name="whatsapp_id" /></label>
             <label className="create-user-field"><span>Pode comprar</span><span className="create-user-select"><select defaultValue={isEnabled(editingUser.pode_comprar) ? 'true' : 'false'} name="pode_comprar"><option value="true">Sim</option><option value="false">Não</option></select><ChevronDown aria-hidden="true" className="create-user-select__icon" size={16} /></span></label>
