@@ -264,7 +264,7 @@ export function BulkProductEditor() {
     return <label className="spreadsheet-field" key={key}>
       <span>{label}{required && <b aria-label="obrigatório">*</b>}</span>
       <input aria-invalid={Boolean(error)} aria-label={`${label}, linha ${index + 1}`} className={error ? 'spreadsheet-cell spreadsheet-cell--invalid' : 'spreadsheet-cell'} inputMode={key === 'preco' || key === 'quantidade' ? 'decimal' : undefined} onChange={(event) => updateRow(row.rowId, key, event.target.value)} placeholder={key === 'preco' ? '0,00' : ''} title={error || label} value={row[key]} />
-      {error && <small>{error}</small>}
+      <small aria-hidden={!error}>{error}</small>
     </label>
   }
 
