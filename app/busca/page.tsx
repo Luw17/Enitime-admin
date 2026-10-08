@@ -32,37 +32,6 @@ type StoreGroup = {
 }
 
 const CART_KEY = 'enitime-cart-v1'
-const DEV_TELEGRAM_ID = '8848015961'
-
-function getLocalTelegramContext() {
-  if (typeof window === 'undefined') return null
-
-  const params = new URLSearchParams(window.location.search)
-  const overrideId =
-    params.get('telegram_chat_id') ??
-    params.get('telegram_id') ??
-    params.get('chat_id') ??
-    window.localStorage.getItem('enitime-dev-telegram-id') ??
-    DEV_TELEGRAM_ID
-
-  const id = overrideId || DEV_TELEGRAM_ID
-
-  return {
-    initData: 'dev-mock-init-data',
-    initDataUnsafe: {
-      user: {
-        id,
-        username: 'dev_test_user',
-        first_name: 'Dev',
-        last_name: 'Tester',
-      },
-      chat: {
-        id,
-        type: 'private',
-      },
-    },
-  }
-}
 
 declare global {
   interface Window {
@@ -95,8 +64,30 @@ function toNumber(value: unknown, fallback = 0) {
 function parsePrice(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string') {
-    const sanitized = value.replace(/[R$\s.]/g, '').replace(',', '.')
-    const numeric = Number(sanitized)
+    const sanitized = value.trim().replace(/[^\d,.-]/g, '')
+    if (!/\d/.test(sanitized)) return 0
+
+    const commaIndex = sanitized.lastIndexOf(',')
+    const dotIndex = sanitized.lastIndexOf('.')
+    let normalized = sanitized
+
+    if (commaIndex >= 0 && dotIndex >= 0) {
+      const decimalIndex = Math.max(commaIndex, dotIndex)
+      const integer = sanitized.slice(0, decimalIndex).replace(/[,.]/g, '')
+      const fraction = sanitized.slice(decimalIndex + 1).replace(/[,.]/g, '')
+      normalized = `${integer}.${fraction}`
+    } else if (commaIndex >= 0) {
+      const integer = sanitized.slice(0, commaIndex).replace(/[,.]/g, '')
+      const fraction = sanitized.slice(commaIndex + 1).replace(/[,.]/g, '')
+      normalized = `${integer}.${fraction}`
+    } else if (dotIndex >= 0 && sanitized.indexOf('.') !== dotIndex) {
+      const fractionDigits = sanitized.length - dotIndex - 1
+      normalized = fractionDigits > 0 && fractionDigits <= 2
+        ? `${sanitized.slice(0, dotIndex).replace(/\./g, '')}.${sanitized.slice(dotIndex + 1)}`
+        : sanitized.replace(/\./g, '')
+    }
+
+    const numeric = Number(normalized)
     if (Number.isFinite(numeric)) return numeric
   }
   return 0
@@ -140,7 +131,15 @@ export default function SearchPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (window.Telegram && window.Telegram.WebApp) return
+    const syncTelegramContext = () => {
+      const tg = window.Telegram?.WebApp
+      const user = tg?.initDataUnsafe?.user
+      setTelegramUserId(user?.id ?? null)
+      setTelegramChatId(tg?.initDataUnsafe?.chat?.id ?? user?.id ?? null)
+    }
+
+    syncTelegramContext()
+    if (window.Telegram?.WebApp) return
 
     const s = document.createElement('script')
     s.src = 'https://telegram.org/js/telegram-web-app.js'
@@ -150,6 +149,7 @@ export default function SearchPage() {
         const tg = window.Telegram?.WebApp
         if (tg && typeof tg.ready === 'function') tg.ready()
         if (tg && typeof tg.expand === 'function') tg.expand()
+        syncTelegramContext()
       } catch {}
     }
     document.head.appendChild(s)
@@ -158,11 +158,8 @@ export default function SearchPage() {
 
   useEffect(() => {
     const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined
-    const fallbackContext = getLocalTelegramContext()
-    const currentContext = tg?.initDataUnsafe ?? fallbackContext?.initDataUnsafe ?? {}
-
-    setTelegramUserId(currentContext.user?.id ?? null)
-    setTelegramChatId(currentContext.chat?.id ?? currentContext.user?.id ?? null)
+    setTelegramUserId(tg?.initDataUnsafe?.user?.id ?? null)
+    setTelegramChatId(tg?.initDataUnsafe?.chat?.id ?? tg?.initDataUnsafe?.user?.id ?? null)
 
     if (!tg) return
 
@@ -262,15 +259,20 @@ export default function SearchPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined
+    const telegramUser = tg?.initDataUnsafe?.user ?? null
+    if (telegramUser?.id === null || telegramUser?.id === undefined) {
+      setResults([])
+      setMessage('Abra a busca pelo Telegram para consultar com sua conta real.')
+      return
+    }
+
     setIsSubmitting(true)
     setMessage(null)
     setSuccessMessage(null)
 
     const formData = new FormData(event.currentTarget)
-    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined
-    const fallbackContext = getLocalTelegramContext()
-    const telegramUser = tg?.initDataUnsafe?.user ?? fallbackContext?.initDataUnsafe?.user ?? null
-    const telegramChat = tg?.initDataUnsafe?.chat ?? fallbackContext?.initDataUnsafe?.chat ?? null
+    const telegramChat = tg?.initDataUnsafe?.chat ?? null
 
     const payload = {
       tipo_componente: String(formData.get('tipo_componente') ?? '').trim() || null,
@@ -283,8 +285,8 @@ export default function SearchPage() {
       username: telegramUser?.username ?? null,
       first_name: telegramUser?.first_name ?? null,
       last_name: telegramUser?.last_name ?? null,
-      initData: tg?.initData ?? fallbackContext?.initData ?? null,
-      initDataUnsafe: tg?.initDataUnsafe ?? fallbackContext?.initDataUnsafe ?? null,
+      initData: tg?.initData ?? null,
+      initDataUnsafe: tg?.initDataUnsafe ?? null,
     }
 
     try {
