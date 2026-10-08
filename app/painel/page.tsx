@@ -32,7 +32,7 @@ export default async function UserDashboardPage() {
 
   return (
     <main className="admin-layout">
-      <PainelSidebar active="overview" showProducts={canSell} />
+      <PainelSidebar active="overview" showProducts={canSell} showOrders={canSell} />
 
       <section className="admin-content" id="visao-geral">
         <header className="admin-header">

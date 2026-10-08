@@ -369,6 +369,14 @@ tr:last-child td { border-bottom: 0; }
 .spreadsheet-field b { margin-left: 3px; color: #b42318; }
 .spreadsheet-field small { min-height: 12px; color: #b42318; font-size: 10px; font-weight: 500; line-height: 12px; }
 .spreadsheet-cell { width: 100%; min-width: 0; height: 38px; border: 1px solid var(--border); border-radius: 5px; outline: none; background: var(--input); color: var(--foreground); padding: 0 10px; font: inherit; font-size: 12px; }
+.model-tags-input { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; width: 100%; min-width: 0; min-height: 38px; border: 1px solid var(--border); border-radius: 5px; background: var(--input); padding: 3px 8px; }
+.create-user-field .model-tags-input { min-height: 42px; }
+.model-tags-input:focus-within { border-color: #4c9d72; box-shadow: 0 0 0 2px rgba(76,157,114,0.14); }
+.model-tags-input__tag { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; border-radius: 4px; background: var(--muted); color: var(--foreground); padding: 4px 5px 4px 7px; font-size: 11px; font-weight: 500; overflow-wrap: anywhere; }
+.model-tags-input__remove { display: grid; flex: 0 0 18px; place-items: center; width: 18px; height: 18px; border: 0; border-radius: 3px; background: transparent; color: rgba(12,22,24,0.6); cursor: pointer; }
+.model-tags-input__remove:hover { background: rgba(214,69,69,0.1); color: #b42318; }
+.model-tags-input > input { flex: 1 1 100px; width: 0; min-width: 0; height: 26px; border: 0; outline: none; background: transparent; color: var(--foreground); padding: 0 2px; font: inherit; font-size: 12px; }
+.model-tags-input > input::placeholder { color: rgba(12,22,24,0.4); }
 .spreadsheet-cell:hover { border-color: var(--border); background: var(--background); }
 .spreadsheet-cell:focus { border-color: #4c9d72; background: var(--background); box-shadow: 0 0 0 2px rgba(76,157,114,0.14); }
 .spreadsheet-cell::placeholder { color: rgba(12,22,24,0.35); }

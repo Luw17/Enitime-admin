@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Pencil, X } from 'lucide-react'
 import type { ProductRecord } from '@/lib/products'
+import { ModelTagsInput } from '@/components/model-tags-input'
+import { parseCompatibleModels } from '@/lib/model-tags'
 
 const labels: Record<string, string> = {
   sku: 'SKU',
-  part_number: 'Part Number',
+  part_number: 'Código da peça',
   modelos_compativeis: 'Modelos compatíveis',
   tipo_componente: 'Tipo de componente',
   marca_qualidade: 'Marca/qualidade',
@@ -21,6 +23,7 @@ const editableFields = ['part_number', 'modelos_compativeis', 'tipo_componente',
 function displayValue(value: unknown) {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Sim' : 'Não'
+  if (Array.isArray(value)) return value.map(String).join(', ') || '—'
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
@@ -49,7 +52,7 @@ export function ProductList({ initialProducts }: { initialProducts: ProductRecor
     const formData = new FormData(event.currentTarget)
     const updates = {
       part_number: String(formData.get('part_number') ?? ''),
-      modelos_compativeis: String(formData.get('modelos_compativeis') ?? ''),
+      modelos_compativeis: parseCompatibleModels(formData.get('modelos_compativeis')),
       tipo_componente: String(formData.get('tipo_componente') ?? ''),
       marca_qualidade: String(formData.get('marca_qualidade') ?? ''),
       preco: Number(formData.get('preco')),
@@ -88,8 +91,8 @@ export function ProductList({ initialProducts }: { initialProducts: ProductRecor
         <header className="create-user-modal__header"><div><p className="eyebrow">Estoque da loja</p><h2 id="edit-product-title">Editar produto</h2></div><button aria-label="Fechar" className="modal-close-button" disabled={isUpdating} onClick={() => setEditingProduct(null)} type="button"><X aria-hidden="true" size={18} /></button></header>
         <form className="create-user-form" onSubmit={handleUpdateProduct}>
           <label className="create-user-field"><span>SKU</span><input defaultValue={String(editingProduct.sku ?? '')} disabled /></label>
-          <label className="create-user-field"><span>Part Number</span><input defaultValue={String(editingProduct.part_number ?? '')} name="part_number" /></label>
-          <label className="create-user-field"><span>Modelos compatíveis</span><input defaultValue={String(editingProduct.modelos_compativeis ?? '')} name="modelos_compativeis" /></label>
+          <label className="create-user-field"><span>Código da peça</span><input defaultValue={String(editingProduct.part_number ?? '')} name="part_number" /></label>
+          <div className="create-user-field"><span>Modelos compatíveis</span><ModelTagsInput ariaLabel="Modelos compatíveis" name="modelos_compativeis" onChange={(models) => setEditingProduct((current) => current ? { ...current, modelos_compativeis: models } : current)} value={parseCompatibleModels(editingProduct.modelos_compativeis)} /></div>
           <label className="create-user-field"><span>Tipo de componente</span><input defaultValue={String(editingProduct.tipo_componente ?? '')} name="tipo_componente" /></label>
           <label className="create-user-field"><span>Marca/qualidade</span><input defaultValue={String(editingProduct.marca_qualidade ?? '')} name="marca_qualidade" /></label>
           <label className="create-user-field"><span>Preço (R$) <b>*</b></span><input defaultValue={String(editingProduct.preco ?? '')} min="0" name="preco" required step="0.01" type="number" /></label>

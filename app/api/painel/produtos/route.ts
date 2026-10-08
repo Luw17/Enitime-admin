@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canUserSell } from '@/lib/products'
 import { getSession, TOKEN_COOKIE } from '@/lib/session'
+import { parseCompatibleModels } from '@/lib/model-tags'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -19,6 +20,7 @@ export async function PATCH(request: Request) {
   if ((typeof sellerId !== 'string' && typeof sellerId !== 'number') || !String(sellerId).trim()) {
     return NextResponse.json({ message: 'Não foi possível identificar a loja desta sessão.' }, { status: 401 })
   }
+  const supplierId = typeof sellerId === 'string' ? sellerId.trim() : sellerId
 
   let payload: unknown
   try {
@@ -32,7 +34,7 @@ export async function PATCH(request: Request) {
   }
 
   const allowedFields = ['part_number', 'modelos_compativeis', 'tipo_componente', 'marca_qualidade', 'preco', 'quantidade']
-  const updates: Record<string, string | number> = {}
+  const updates: Record<string, string | number | string[]> = {}
   for (const [key, value] of Object.entries(payload)) {
     if (key === 'id') continue
     if (!allowedFields.includes(key)) return NextResponse.json({ message: `O campo ${key} não pode ser editado.` }, { status: 400 })
@@ -53,6 +55,12 @@ export async function PATCH(request: Request) {
       continue
     }
 
+    if (key === 'modelos_compativeis') {
+      if (!Array.isArray(value) && typeof value !== 'string') return NextResponse.json({ message: `O campo ${key} é inválido.` }, { status: 400 })
+      updates[key] = parseCompatibleModels(value)
+      continue
+    }
+
     if (typeof value !== 'string') return NextResponse.json({ message: `O campo ${key} é inválido.` }, { status: 400 })
     updates[key] = value.trim()
   }
@@ -66,7 +74,12 @@ export async function PATCH(request: Request) {
 
   try {
     const url = new URL(`${baseUrl}/produtos`)
-    url.searchParams.set('id', String(sellerId).trim())
+    url.searchParams.set('id', String(supplierId))
+    const webhookUpdates = { ...updates }
+    if ('part_number' in webhookUpdates) {
+      webhookUpdates.codigo_peca = webhookUpdates.part_number
+      delete webhookUpdates.part_number
+    }
     const response = await fetch(url, {
       method: 'PATCH',
       headers: {
@@ -74,7 +87,7 @@ export async function PATCH(request: Request) {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({ id: String(payload.id).trim(), ...updates }),
+      body: JSON.stringify({ id: String(payload.id).trim(), fornecedor_id: supplierId, ...webhookUpdates }),
       cache: 'no-store',
     })
     if (response.status === 204) return NextResponse.json({ message: 'Produto atualizado.' })

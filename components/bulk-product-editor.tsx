@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react'
 import Papa from 'papaparse'
 import { Download, Plus, Trash2, Upload, X } from 'lucide-react'
+import { ModelTagsInput } from '@/components/model-tags-input'
+import { parseCompatibleModels } from '@/lib/model-tags'
 
 type ProductValues = {
   sku: string
@@ -27,7 +29,7 @@ type SaveFeedback = {
 
 const columns: { key: ProductField; label: string; required: boolean }[] = [
   { key: 'sku', label: 'SKU', required: true },
-  { key: 'part_number', label: 'Part Number', required: false },
+  { key: 'part_number', label: 'Código da peça', required: false },
   { key: 'modelos_compativeis', label: 'Modelos Compatíveis', required: false },
   { key: 'tipo_componente', label: 'Tipo de Componente', required: false },
   { key: 'marca_qualidade', label: 'Marca/Qualidade', required: false },
@@ -38,6 +40,7 @@ const columns: { key: ProductField; label: string; required: boolean }[] = [
 const fieldByHeader: Record<string, ProductField> = {
   sku: 'sku',
   partnumber: 'part_number',
+  codigopeca: 'part_number',
   pn: 'part_number',
   modeloscompativeis: 'modelos_compativeis',
   tipodecomponente: 'tipo_componente',
@@ -231,7 +234,7 @@ export function BulkProductEditor() {
         ...row,
         sku: row.sku.trim(),
         part_number: row.part_number.trim(),
-        modelos_compativeis: row.modelos_compativeis.trim(),
+        modelos_compativeis: parseCompatibleModels(row.modelos_compativeis),
         tipo_componente: row.tipo_componente.trim(),
         marca_qualidade: row.marca_qualidade.trim(),
         preco: parsePrice(row.preco),
@@ -261,6 +264,13 @@ export function BulkProductEditor() {
 
   function renderField(row: ProductRow, index: number, { key, label, required }: typeof columns[number]) {
     const error = errorFor(row, key)
+    if (key === 'modelos_compativeis') {
+      return <div className="spreadsheet-field" key={key}>
+        <span>{label}{required && <b aria-label="obrigatório">*</b>}</span>
+        <ModelTagsInput ariaLabel={`${label}, linha ${index + 1}`} onChange={(models) => updateRow(row.rowId, key, models.join(', '))} value={parseCompatibleModels(row[key])} />
+        <small aria-hidden="true" />
+      </div>
+    }
     return <label className="spreadsheet-field" key={key}>
       <span>{label}{required && <b aria-label="obrigatório">*</b>}</span>
       <input aria-invalid={Boolean(error)} aria-label={`${label}, linha ${index + 1}`} className={error ? 'spreadsheet-cell spreadsheet-cell--invalid' : 'spreadsheet-cell'} inputMode={key === 'preco' || key === 'quantidade' ? 'decimal' : undefined} onChange={(event) => updateRow(row.rowId, key, event.target.value)} placeholder={key === 'preco' ? '0,00' : ''} title={error || label} value={row[key]} />

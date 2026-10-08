@@ -9,12 +9,42 @@ import { LogoutButton } from '@/components/logout-button'
 
 type UserRecord = Record<string, unknown>
 
+function isUserRecord(value: unknown): value is UserRecord {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeUserRecords(value: unknown): UserRecord[] {
+  let result = value
+
+  if (
+    Array.isArray(result) && result.length === 1 && isUserRecord(result[0]) &&
+    ('dados' in result[0] || 'paginacao' in result[0])
+  ) {
+    result = result[0]
+  }
+
+  if (Array.isArray(result)) return result.filter(isUserRecord)
+  if (!isUserRecord(result)) return []
+
+  for (const key of ['users', 'data', 'dados']) {
+    const nested = result[key]
+    if (Array.isArray(nested)) return nested.filter(isUserRecord)
+    if (typeof nested === 'string') {
+      try {
+        const parsed: unknown = JSON.parse(nested)
+        if (Array.isArray(parsed)) return parsed.filter(isUserRecord)
+      } catch {}
+    }
+  }
+
+  return [result]
+}
+
 async function requestUsers(): Promise<UserRecord[]> {
   const response = await fetch('/api/admin-users', { cache: 'no-store' })
   const result = await response.json()
   if (!response.ok) throw new Error(result?.message ?? 'Não foi possível carregar os usuários.')
-  const records: unknown[] = Array.isArray(result) ? result : Array.isArray(result?.users) ? result.users : Array.isArray(result?.data) ? result.data : [result]
-  return records.filter((item): item is UserRecord => item !== null && typeof item === 'object')
+  return normalizeUserRecords(result)
 }
 
 const columnLabels: Record<string, string> = {

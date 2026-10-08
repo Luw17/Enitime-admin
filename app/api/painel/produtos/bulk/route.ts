@@ -2,11 +2,12 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canUserSell } from '@/lib/products'
 import { getSession, TOKEN_COOKIE } from '@/lib/session'
+import { parseCompatibleModels } from '@/lib/model-tags'
 
 type BulkProduct = {
   sku: string
-  part_number: string
-  modelos_compativeis: string
+  codigo_peca: string
+  modelos_compativeis: string[]
   tipo_componente: string
   marca_qualidade: string
   preco: number
@@ -29,8 +30,8 @@ function normalizeProduct(value: unknown): BulkProduct | null {
 
   return {
     sku: sku.trim(),
-    part_number: typeof part_number === 'string' ? part_number.trim() : '',
-    modelos_compativeis: typeof modelos_compativeis === 'string' ? modelos_compativeis.trim() : '',
+    codigo_peca: typeof part_number === 'string' ? part_number.trim() : '',
+    modelos_compativeis: parseCompatibleModels(modelos_compativeis),
     tipo_componente: typeof tipo_componente === 'string' ? tipo_componente.trim() : '',
     marca_qualidade: typeof marca_qualidade === 'string' ? marca_qualidade.trim() : '',
     preco,
@@ -42,6 +43,11 @@ export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ message: 'Sessão expirada. Faça login novamente.' }, { status: 401 })
   if (!canUserSell(session.user)) return NextResponse.json({ message: 'Acesso permitido somente a usuários com permissão para vender.' }, { status: 403 })
+  const supplierId = session.user.id
+  if ((typeof supplierId !== 'string' && typeof supplierId !== 'number') || !String(supplierId).trim()) {
+    return NextResponse.json({ message: 'Não foi possível identificar o ID do fornecedor.' }, { status: 401 })
+  }
+  const normalizedSupplierId = typeof supplierId === 'string' ? supplierId.trim() : supplierId
 
   const token = (await cookies()).get(TOKEN_COOKIE)?.value
   if (!token) return NextResponse.json({ message: 'Sessão sem token de autenticação. Faça login novamente.' }, { status: 401 })
@@ -84,7 +90,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify(normalizedProducts),
+      body: JSON.stringify(normalizedProducts.map((product) => ({ fornecedor_id: normalizedSupplierId, ...product }))),
       cache: 'no-store',
     })
 
