@@ -1,16 +1,18 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react'
+import { ShoppingCart } from 'lucide-react'
 
 type SearchResult = {
   produto_id?: string | number
   sku?: string
   part_number?: string
-  modelos_compativeis?: string
+  modelos_compativeis?: string | string[]
   tipo_componente?: string
   marca_qualidade?: string
   preco?: string | number
   quantidade_estoque?: number | string
+  estoque_maximo?: number | string
   nome_loja?: string
   vendedor_nome?: string
   distancia_km?: string | number
@@ -95,6 +97,16 @@ function parsePrice(value: unknown): number {
 
 function money(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+function compatibleModels(value: SearchResult['modelos_compativeis'], fallback?: string) {
+  if (Array.isArray(value)) {
+    const models = value.filter((model) => typeof model === 'string').map((model) => model.trim()).filter(Boolean)
+    if (models.length) return models.join(', ')
+  } else if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+  return fallback || 'Modelo não informado'
 }
 
 export default function SearchPage() {
@@ -396,7 +408,14 @@ export default function SearchPage() {
         <section className="search-mobile-results" aria-live="polite">
           <div className="search-mobile-results__header">
             <h2>Peças encontradas</h2>
-            {results.length > 0 && <span>{results.length} item{results.length === 1 ? '' : 's'}</span>}
+            <div className="search-mobile-results__actions">
+              {results.length > 0 && <span>{results.length} item{results.length === 1 ? '' : 's'}</span>}
+              <button aria-label={`Abrir carrinho, ${cartCount} itens`} className="search-mobile-cart-button" onClick={() => setIsCartOpen(true)} type="button">
+                <ShoppingCart aria-hidden="true" size={16} />
+                <span>Carrinho</span>
+                <span className="search-mobile-cart-button__count">{cartCount}</span>
+              </button>
+            </div>
           </div>
 
           {!results.length ? (
@@ -412,7 +431,7 @@ export default function SearchPage() {
                     <span className="search-mobile-card__distance">{item.distancia_km ? `${item.distancia_km} km` : 'Próximo'}</span>
                   </div>
                   <h3>{item.part_number || item.sku || 'Peça sem código'}</h3>
-                  <p className="search-mobile-card__subline">{item.modelos_compativeis || item.nome_loja || 'Modelo não informado'}</p>
+                  <p className="search-mobile-card__subline">{compatibleModels(item.modelos_compativeis, item.nome_loja)}</p>
                   <div className="search-mobile-card__meta">
                     <div>
                       <span className="search-mobile-card__label">Loja</span>
@@ -433,11 +452,6 @@ export default function SearchPage() {
           )}
         </section>
       </section>
-
-      <button className="cart-fab" type="button" onClick={() => setIsCartOpen(true)}>
-        <span className="cart-fab__icon">🛒</span>
-        {cartCount > 0 && <span className="cart-fab__count">{cartCount}</span>}
-      </button>
 
       {isAddModalOpen && selectedProduct && (
         <div className="mobile-modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
