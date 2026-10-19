@@ -7,16 +7,7 @@ export const metadata: Metadata = {
   description: 'Painel de gestão da Enitime.',
   generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/LogoEnitime.png',
-        type: 'image/png',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/LogoEnitime.png',
     shortcut: '/LogoEnitime.png',
     apple: '/LogoEnitime.png',
   },
